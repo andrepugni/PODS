@@ -77,6 +77,7 @@ class WideResNet(nn.Module):
         out = self.fc(out)
         return out
 
+
 class DenseNet121_CE(nn.Module):
     """Model for just classification.
     The architecture of our model is the same as standard DenseNet121
@@ -84,7 +85,9 @@ class DenseNet121_CE(nn.Module):
 
     def __init__(self, out_size):
         super(DenseNet121_CE, self).__init__()
-        self.densenet121 = torchvision.models.densenet121(weights=DenseNet121_Weights.DEFAULT)
+        self.densenet121 = torchvision.models.densenet121(
+            weights=DenseNet121_Weights.DEFAULT
+        )
         self.num_ftrs = self.densenet121.classifier.in_features
         self.densenet121.classifier = nn.Sequential(nn.Linear(self.num_ftrs, out_size))
 
@@ -96,6 +99,7 @@ class DenseNet121_CE(nn.Module):
     def forward(self, x):
         x = self.densenet121(x)
         return x
+
 
 class ResNet50_CE(nn.Module):
     """Model for just classification.
@@ -118,7 +122,6 @@ class ResNet50_CE(nn.Module):
         return x
 
 
-
 class BasicBlock(nn.Module):
     """
     Block for WideResNet
@@ -139,16 +142,16 @@ class BasicBlock(nn.Module):
         self.droprate = dropRate
         self.equalInOut = in_planes == out_planes
         self.convShortcut = (
-                (not self.equalInOut)
-                and nn.Conv2d(
-            in_planes,
-            out_planes,
-            kernel_size=1,
-            stride=stride,
-            padding=0,
-            bias=False,
-        )
-                or None
+            (not self.equalInOut)
+            and nn.Conv2d(
+                in_planes,
+                out_planes,
+                kernel_size=1,
+                stride=stride,
+                padding=0,
+                bias=False,
+            )
+            or None
         )
 
     def forward(self, x):
@@ -185,9 +188,6 @@ class NetworkBlock(nn.Module):
 
     def forward(self, x):
         return self.layer(x)
-
-
-
 
 
 # simple conv network
@@ -247,14 +247,14 @@ class NetSimpleDefer(nn.Module):
 
 class CNNText(nn.Module):
     def __init__(
-            self,
-            vocab_size,
-            embedding_dim,
-            n_filters,
-            filter_sizes,
-            output_dim,
-            dropout,
-            pad_idx,
+        self,
+        vocab_size,
+        embedding_dim,
+        n_filters,
+        filter_sizes,
+        output_dim,
+        dropout,
+        pad_idx,
     ):
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=pad_idx)
@@ -494,10 +494,10 @@ class NonLinearNet(nn.Module):
         # add dropout
 
     def forward(self, x):
-
         out = self.fc_all(x)
 
         return out
+
 
 class ModelPredictAAE:
     def __init__(self, modelfile, vocabfile):
@@ -509,7 +509,6 @@ class ModelPredictAAE:
         self.load_model()
 
     def load_model(self):
-
         self.N_wk = np.loadtxt(self.modelfile)
         self.N_w = self.N_wk.sum(1)
         self.N_k = self.N_wk.sum(0)

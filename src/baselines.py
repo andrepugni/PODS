@@ -27,6 +27,7 @@ from tqdm import tqdm
 
 eps_cst = 1e-8
 
+
 class BaseMethod(ABC):
     """Abstract method for learning to defer methods"""
 
@@ -59,14 +60,16 @@ class BaseMethod(ABC):
 class BaseSurrogateMethod(BaseMethod):
     """Abstract method for learning to defer methods based on a surrogate model"""
 
-    def __init__(self, alpha, plotting_interval, model, device, learnable_threshold_rej=False):
-        '''
+    def __init__(
+        self, alpha, plotting_interval, model, device, learnable_threshold_rej=False
+    ):
+        """
         alpha: hyperparameter for surrogate loss
         plotting_interval (int): used for plotting model training in fit_epoch
         model (pytorch model): model used for surrogate
         device: cuda device or cpu
         learnable_threshold_rej (bool): whether to learn a treshold on the reject score (applicable to RealizableSurrogate only)
-        '''
+        """
         self.alpha = alpha
         self.plotting_interval = plotting_interval
         self.model = model
@@ -79,7 +82,9 @@ class BaseSurrogateMethod(BaseMethod):
         """surrogate loss function"""
         pass
 
-    def fit_epoch(self, dataloader, optimizer, verbose=True, epoch=1, m_norm=5, weight=None):
+    def fit_epoch(
+        self, dataloader, optimizer, verbose=True, epoch=1, m_norm=5, weight=None
+    ):
         """
         Fit the model for one epoch
         model: model to be trained
@@ -98,7 +103,9 @@ class BaseSurrogateMethod(BaseMethod):
             data_y = data_y.to(self.device)
             hum_preds = hum_preds.to(self.device)
             outputs = self.model(data_x)
-            loss = self.surrogate_loss_function(outputs, hum_preds, data_y, weight=weight)
+            loss = self.surrogate_loss_function(
+                outputs, hum_preds, data_y, weight=weight
+            )
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=m_norm)
             optimizer.zero_grad()
             loss.backward()
@@ -128,20 +135,20 @@ class BaseSurrogateMethod(BaseMethod):
                 break
 
     def fit(
-            self,
-            dataloader_train,
-            dataloader_val,
-            dataloader_test,
-            epochs,
-            optimizer,
-            lr,
-            scheduler=None,
-            verbose=True,
-            test_interval=1,
-            step_size=25,
-            gamma=0.1,
-            m_norm=5,
-            weight=None
+        self,
+        dataloader_train,
+        dataloader_val,
+        dataloader_test,
+        epochs,
+        optimizer,
+        lr,
+        scheduler=None,
+        verbose=True,
+        test_interval=1,
+        step_size=25,
+        gamma=0.1,
+        m_norm=5,
+        weight=None,
     ):
         optimizer = optimizer(self.model.parameters(), lr=lr)
         if scheduler is not None:
@@ -151,7 +158,14 @@ class BaseSurrogateMethod(BaseMethod):
         # store current model dict
         best_model = copy.deepcopy(self.model.state_dict())
         for epoch in tqdm(range(epochs)):
-            self.fit_epoch(dataloader_train, optimizer, verbose, epoch, m_norm=m_norm, weight=weight)
+            self.fit_epoch(
+                dataloader_train,
+                optimizer,
+                verbose,
+                epoch,
+                m_norm=m_norm,
+                weight=weight,
+            )
             if epoch % test_interval == 0 and epoch > 1:
                 if self.learnable_threshold_rej:
                     self.fit_treshold_rej(dataloader_val)
@@ -165,7 +179,7 @@ class BaseSurrogateMethod(BaseMethod):
             if scheduler is not None:
                 scheduler.step()
                 if epoch % 10 == 0:
-                    print("{}".format(optimizer.param_groups[0]['lr']))
+                    print("{}".format(optimizer.param_groups[0]["lr"]))
         self.model.load_state_dict(best_model)
         if self.learnable_threshold_rej:
             self.fit_treshold_rej(dataloader_val)
@@ -189,8 +203,8 @@ class BaseSurrogateMethod(BaseMethod):
             copy_data["defers"] = defers
             # compute metrics
             metrics = compute_deferral_metrics(copy_data)
-            if metrics['system_acc'] > best_accuracy:
-                best_accuracy = metrics['system_acc']
+            if metrics["system_acc"] > best_accuracy:
+                best_accuracy = metrics["system_acc"]
                 best_treshold = q
         self.threshold_rej = best_treshold
 
@@ -218,9 +232,15 @@ class BaseSurrogateMethod(BaseMethod):
                 max_probs, predicted_class = torch.max(outputs.data[:, :-1], 1)
                 predictions_all.extend(predicted_class.cpu().numpy())
 
-                defer_scores = [outputs.data[i][-1].item() - outputs.data[i][predicted_class[i]].item() for i in
-                                range(len(outputs.data))]
-                defer_binary = [int(defer_score >= self.threshold_rej) for defer_score in defer_scores]
+                defer_scores = [
+                    outputs.data[i][-1].item()
+                    - outputs.data[i][predicted_class[i]].item()
+                    for i in range(len(outputs.data))
+                ]
+                defer_binary = [
+                    int(defer_score >= self.threshold_rej)
+                    for defer_score in defer_scores
+                ]
                 defers_all.extend(defer_binary)
                 truths_all.extend(data_y.cpu().numpy())
                 hum_preds_all.extend(hum_preds.cpu().numpy())
@@ -248,6 +268,7 @@ class BaseSurrogateMethod(BaseMethod):
         }
         return data
 
+
 class CompareConfidence(BaseMethod):
     """Method trains classifier indepedently on cross entropy,
     and expert model on whether human prediction is equal to ground truth.
@@ -268,7 +289,9 @@ class CompareConfidence(BaseMethod):
         self.device = device
         self.plotting_interval = plotting_interval
 
-    def fit_epoch_class(self, dataloader, optimizer, verbose=True, epoch=1, m_norm=5, weight=None):
+    def fit_epoch_class(
+        self, dataloader, optimizer, verbose=True, epoch=1, m_norm=5, weight=None
+    ):
         """
         train classifier for single epoch
         Args:
@@ -290,7 +313,9 @@ class CompareConfidence(BaseMethod):
             outputs = self.model_class(data_x)
             # cross entropy loss
             loss = F.cross_entropy(outputs, data_y, weight=weight)
-            torch.nn.utils.clip_grad_norm_(self.model_class.parameters(), max_norm=m_norm)
+            torch.nn.utils.clip_grad_norm_(
+                self.model_class.parameters(), max_norm=m_norm
+            )
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -319,7 +344,9 @@ class CompareConfidence(BaseMethod):
                 logging.warning(f"NAN LOSS")
                 break
 
-    def fit_epoch_expert(self, dataloader, optimizer, verbose=True, epoch=1, m_norm=5, weight=None):
+    def fit_epoch_expert(
+        self, dataloader, optimizer, verbose=True, epoch=1, m_norm=5, weight=None
+    ):
         """train expert model for single epoch
 
         Args:
@@ -344,7 +371,9 @@ class CompareConfidence(BaseMethod):
             outputs = self.model_expert(data_x)
             # cross entropy loss
             loss = loss_fn(outputs, hum_equal_to_y)
-            torch.nn.utils.clip_grad_norm_(self.model_expert.parameters(), max_norm=m_norm)
+            torch.nn.utils.clip_grad_norm_(
+                self.model_expert.parameters(), max_norm=m_norm
+            )
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -387,7 +416,7 @@ class CompareConfidence(BaseMethod):
         step_size=25,
         gamma=0.1,
         m_norm=5,
-        weight=None
+        weight=None,
     ):
         """fits classifier and expert model
 
@@ -416,20 +445,36 @@ class CompareConfidence(BaseMethod):
             scheduler_expert = scheduler(optimizer_expert, step_size, gamma=gamma)
         best_acc = 0
         # store current model dict
-        best_model = [copy.deepcopy(self.model_class.state_dict()), copy.deepcopy(self.model_expert.state_dict())]
+        best_model = [
+            copy.deepcopy(self.model_class.state_dict()),
+            copy.deepcopy(self.model_expert.state_dict()),
+        ]
         for epoch in tqdm(range(epochs)):
             self.fit_epoch_class(
-                dataloader_train, optimizer_class, verbose=verbose, epoch=epoch, m_norm=m_norm, weight=weight
+                dataloader_train,
+                optimizer_class,
+                verbose=verbose,
+                epoch=epoch,
+                m_norm=m_norm,
+                weight=weight,
             )
             self.fit_epoch_expert(
-                dataloader_train, optimizer_expert, verbose=verbose, epoch=epoch, m_norm=m_norm, weight=weight
+                dataloader_train,
+                optimizer_expert,
+                verbose=verbose,
+                epoch=epoch,
+                m_norm=m_norm,
+                weight=weight,
             )
             if epoch % test_interval == 0 and epoch > 1:
                 data_test = self.test(dataloader_val)
                 val_metrics = compute_deferral_metrics(data_test)
                 if val_metrics["classifier_all_acc"] >= best_acc:
                     best_acc = val_metrics["classifier_all_acc"]
-                    best_model = [copy.deepcopy(self.model_class.state_dict()), copy.deepcopy(self.model_expert.state_dict())]
+                    best_model = [
+                        copy.deepcopy(self.model_class.state_dict()),
+                        copy.deepcopy(self.model_expert.state_dict()),
+                    ]
 
             if scheduler is not None:
                 scheduler_class.step()
@@ -491,6 +536,7 @@ class CompareConfidence(BaseMethod):
         }
         return data
 
+
 class DifferentiableTriage(BaseMethod):
     def __init__(
         self,
@@ -520,7 +566,9 @@ class DifferentiableTriage(BaseMethod):
         self.plotting_interval = plotting_interval
         self.strategy = strategy
 
-    def fit_epoch_class(self, dataloader, optimizer, verbose=True, epoch=1, m_norm=5, weight=None):
+    def fit_epoch_class(
+        self, dataloader, optimizer, verbose=True, epoch=1, m_norm=5, weight=None
+    ):
         """
         train classifier for single epoch
         Args:
@@ -542,7 +590,9 @@ class DifferentiableTriage(BaseMethod):
             outputs = self.model_class(data_x)
             # cross entropy loss
             loss = F.cross_entropy(outputs, data_y, weight=weight)
-            torch.nn.utils.clip_grad_norm_(self.model_class.parameters(), max_norm=m_norm)
+            torch.nn.utils.clip_grad_norm_(
+                self.model_class.parameters(), max_norm=m_norm
+            )
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -612,7 +662,9 @@ class DifferentiableTriage(BaseMethod):
         soft_weights_classifier = torch.tensor(soft_weights_classifier).to(self.device)
         return rejector_labels, soft_weights_classifier
 
-    def fit_epoch_class_triage(self, dataloader, optimizer, verbose=True, epoch=1, m_norm=5, weight=None):
+    def fit_epoch_class_triage(
+        self, dataloader, optimizer, verbose=True, epoch=1, m_norm=5, weight=None
+    ):
         """
         Fit the model for classifier for one epoch
         """
@@ -633,8 +685,12 @@ class DifferentiableTriage(BaseMethod):
                 outputs, data_y, hum_preds
             )
 
-            loss = weighted_cross_entropy_loss(outputs, data_y, soft_weights_classifier, weight_class=weight)
-            torch.nn.utils.clip_grad_norm_(self.model_class.parameters(), max_norm=m_norm)
+            loss = weighted_cross_entropy_loss(
+                outputs, data_y, soft_weights_classifier, weight_class=weight
+            )
+            torch.nn.utils.clip_grad_norm_(
+                self.model_class.parameters(), max_norm=m_norm
+            )
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -664,7 +720,9 @@ class DifferentiableTriage(BaseMethod):
                 logging.warning(f"NAN LOSS")
                 break
 
-    def fit_epoch_rejector(self, dataloader, optimizer, verbose=True, epoch=1, m_norm=5, weight=None):
+    def fit_epoch_rejector(
+        self, dataloader, optimizer, verbose=True, epoch=1, m_norm=5, weight=None
+    ):
         """
         Fit the rejector for one epoch
         """
@@ -686,7 +744,9 @@ class DifferentiableTriage(BaseMethod):
             outputs = self.model_rejector(data_x)
             # cross entropy loss
             loss = F.cross_entropy(outputs, rejector_labels, weight=weight)
-            torch.nn.utils.clip_grad_norm_(self.model_rejector.parameters(), max_norm=m_norm)
+            torch.nn.utils.clip_grad_norm_(
+                self.model_rejector.parameters(), max_norm=m_norm
+            )
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -730,7 +790,7 @@ class DifferentiableTriage(BaseMethod):
         step_size=25,
         gamma=0.1,
         m_norm=5,
-        weight=None
+        weight=None,
     ):
         optimizer_class = optimizer(self.model_class.parameters(), lr=lr)
         optimizer_rejector = optimizer(self.model_rejector.parameters(), lr=lr)
@@ -745,7 +805,12 @@ class DifferentiableTriage(BaseMethod):
         logging.info("Re-training classifier on data based on the formula")
         for epoch in tqdm(range(int(epochs))):
             self.fit_epoch_class_triage(
-                dataloader_train, optimizer_class, verbose=verbose, epoch=epoch, m_norm=m_norm, weight=weight
+                dataloader_train,
+                optimizer_class,
+                verbose=verbose,
+                epoch=epoch,
+                m_norm=m_norm,
+                weight=weight,
             )
             if verbose and epoch % test_interval == 0:
                 logging.info(compute_classification_metrics(self.test(dataloader_val)))
@@ -759,7 +824,12 @@ class DifferentiableTriage(BaseMethod):
 
         for epoch in tqdm(range(int(epochs))):
             self.fit_epoch_rejector(
-                dataloader_train, optimizer_rejector, verbose=verbose, epoch=epoch, m_norm=m_norm, weight=weight
+                dataloader_train,
+                optimizer_rejector,
+                verbose=verbose,
+                epoch=epoch,
+                m_norm=m_norm,
+                weight=weight,
             )
             if verbose and epoch % test_interval == 0:
                 logging.info(compute_deferral_metrics(self.test(dataloader_val)))
@@ -785,14 +855,14 @@ class DifferentiableTriage(BaseMethod):
         lr,
         verbose=True,
         test_interval=5,
-        scheduler  = None,
-        step_size = 25,
-        gamma = 0.1,
-        path_model_save = "differentiable_triage_",
-        m_norm = 5,
-        weight = None
+        scheduler=None,
+        step_size=25,
+        gamma=0.1,
+        path_model_save="differentiable_triage_",
+        m_norm=5,
+        weight=None,
     ):
-        weight_low_grid = [0,  1]
+        weight_low_grid = [0, 1]
         best_weight = 0
         best_acc = 0
         model_rejector_dict = copy.deepcopy(self.model_rejector.state_dict())
@@ -806,20 +876,26 @@ class DifferentiableTriage(BaseMethod):
                 dataloader_val,
                 dataloader_test,
                 epochs,
-                optimizer = optimizer,
-                lr = lr,
-                verbose = verbose,
-                test_interval = test_interval,
-                scheduler = scheduler,
+                optimizer=optimizer,
+                lr=lr,
+                verbose=verbose,
+                test_interval=test_interval,
+                scheduler=scheduler,
                 step_size=step_size,
                 gamma=gamma,
                 m_norm=m_norm,
-                weight=weight
+                weight=weight,
             )["system_acc"]
             accuracy = compute_deferral_metrics(self.test(dataloader_val))["system_acc"]
             logging.info(f"weight low : {weight_}, accuracy: {accuracy}")
-            torch.save(self.model_rejector.state_dict(), path_model_save + f"_rej_weight_{weight_}.pt")
-            torch.save(self.model_class.state_dict(), path_model_save + f"_class_weight_{weight_}.pt")
+            torch.save(
+                self.model_rejector.state_dict(),
+                path_model_save + f"_rej_weight_{weight_}.pt",
+            )
+            torch.save(
+                self.model_class.state_dict(),
+                path_model_save + f"_class_weight_{weight_}.pt",
+            )
             if accuracy > best_acc:
                 best_acc = accuracy
                 best_weight = weight_
@@ -827,20 +903,20 @@ class DifferentiableTriage(BaseMethod):
         self.model_rejector.load_state_dict(model_rejector_dict)
         self.model_class.load_state_dict(model_class_dict)
         fit = self.fit(
-                dataloader_train,
-                dataloader_val,
-                dataloader_test,
-                epochs,
-                optimizer = optimizer,
-                lr = lr,
-                verbose = verbose,
-                test_interval = test_interval,
-                scheduler = scheduler,
+            dataloader_train,
+            dataloader_val,
+            dataloader_test,
+            epochs,
+            optimizer=optimizer,
+            lr=lr,
+            verbose=verbose,
+            test_interval=test_interval,
+            scheduler=scheduler,
             step_size=step_size,
             gamma=gamma,
             m_norm=m_norm,
-            weight=weight
-            )
+            weight=weight,
+        )
         test_metrics = compute_deferral_metrics(self.test(dataloader_test))
         return test_metrics
 
@@ -887,6 +963,7 @@ class DifferentiableTriage(BaseMethod):
         }
         return data
 
+
 class LceSurrogate(BaseSurrogateMethod):
     def surrogate_loss_function(self, outputs, hum_preds, data_y, weight=None):
         """
@@ -900,15 +977,15 @@ class LceSurrogate(BaseSurrogateMethod):
         batch_size = outputs.size()[0]  # batch_size
         loss = -human_correct * torch.log2(
             outputs[range(batch_size), -1] + eps_cst
-        ) - m2 * torch.log2(
-            outputs[range(batch_size), data_y] + eps_cst
-        )
-        #il peso va fuori dal logaritmo
+        ) - m2 * torch.log2(outputs[range(batch_size), data_y] + eps_cst)
+        # il peso va fuori dal logaritmo
         if weight is not None:
             weights = torch.tensor(weight)
             w_vect = weights.expand((batch_size, outputs.shape[1] - 1))
             if len(data_y.shape) == 1:
-                w_single = torch.gather(w_vect, 1, data_y.unsqueeze(1)).float().to(self.device)
+                w_single = (
+                    torch.gather(w_vect, 1, data_y.unsqueeze(1)).float().to(self.device)
+                )
             else:
                 w_single = torch.gather(w_vect, 1, data_y).float().to(self.device)
             if len(loss.shape) != len(w_single.shape):
@@ -929,11 +1006,11 @@ class LceSurrogate(BaseSurrogateMethod):
         scheduler=None,
         verbose=True,
         test_interval=5,
-            step_size=25,
-            gamma=0.1,
-            path_model_save = "lce_surrogate_",
-            m_norm = 5,
-            weight = None
+        step_size=25,
+        gamma=0.1,
+        path_model_save="lce_surrogate_",
+        m_norm=5,
+        weight=None,
     ):
         alpha_grid = [0, 0.5, 1]
         best_alpha = 0
@@ -947,15 +1024,15 @@ class LceSurrogate(BaseSurrogateMethod):
                 dataloader_val,
                 dataloader_test,
                 epochs,
-                optimizer = optimizer,
-                lr = lr,
-                verbose = verbose,
-                test_interval = test_interval,
-                scheduler = scheduler,
+                optimizer=optimizer,
+                lr=lr,
+                verbose=verbose,
+                test_interval=test_interval,
+                scheduler=scheduler,
                 step_size=step_size,
                 gamma=gamma,
                 m_norm=m_norm,
-                weight=weight
+                weight=weight,
             )["system_acc"]
             accuracy = compute_deferral_metrics(self.test(dataloader_val))["system_acc"]
             logging.info(f"alpha: {alpha}, accuracy: {accuracy}")
@@ -966,22 +1043,23 @@ class LceSurrogate(BaseSurrogateMethod):
         self.alpha = best_alpha
         self.model.load_state_dict(model_dict)
         fit = self.fit(
-                dataloader_train,
-                dataloader_val,
-                dataloader_test,
-                epochs,
-                optimizer = optimizer,
-                lr = lr,
-                verbose = verbose,
-                test_interval = test_interval,
-                scheduler = scheduler,
+            dataloader_train,
+            dataloader_val,
+            dataloader_test,
+            epochs,
+            optimizer=optimizer,
+            lr=lr,
+            verbose=verbose,
+            test_interval=test_interval,
+            scheduler=scheduler,
             step_size=step_size,
             gamma=gamma,
             m_norm=m_norm,
-            weight=weight
-            )
+            weight=weight,
+        )
         test_metrics = compute_deferral_metrics(self.test(dataloader_test))
         return test_metrics
+
 
 class MixtureOfExperts(BaseMethod):
     """Implementation of Madras et al., 2018"""
@@ -997,7 +1075,9 @@ class MixtureOfExperts(BaseMethod):
         """
 
         batch_size = outputs.size()[0]  # batch_size
-        human_loss = torch.Tensor((1 - human_is_correct * 1.0)).clone().float().to(self.device)
+        human_loss = (
+            torch.Tensor((1 - human_is_correct * 1.0)).clone().float().to(self.device)
+        )
         rejector_probability = torch.sigmoid(
             outputs[:, -1] + eps_cst
         )  # probability of rejection
@@ -1013,7 +1093,9 @@ class MixtureOfExperts(BaseMethod):
             weights = torch.tensor(weight)
             w_vect = weights.expand((batch_size, outputs.shape[1] - 1))
             if len(labels.shape) == 1:
-                w_single = torch.gather(w_vect, 1, labels.unsqueeze(1)).float().to(self.device)
+                w_single = (
+                    torch.gather(w_vect, 1, labels.unsqueeze(1)).float().to(self.device)
+                )
             else:
                 w_single = torch.gather(w_vect, 1, labels).float().to(self.device)
             if len(loss.shape) != len(w_single.shape):
@@ -1022,7 +1104,9 @@ class MixtureOfExperts(BaseMethod):
                 loss = loss * w_single
         return torch.sum(loss) / batch_size
 
-    def fit_epoch(self, dataloader, optimizer, verbose=True, epoch=1, m_norm=5, weight=None):
+    def fit_epoch(
+        self, dataloader, optimizer, verbose=True, epoch=1, m_norm=5, weight=None
+    ):
         """
         Fit the model for one epoch
         """
@@ -1083,21 +1167,28 @@ class MixtureOfExperts(BaseMethod):
         step_size=25,
         gamma=0.1,
         m_norm=5,
-        weight=None
+        weight=None,
     ):
         optimizer = optimizer(self.model.parameters(), lr=lr)
         if scheduler is not None:
             # scheduler = scheduler(optimizer, len(dataloader_train)*epochs)
             scheduler = scheduler(optimizer, step_size, gamma=gamma)
         for epoch in tqdm(range(epochs)):
-            self.fit_epoch(dataloader_train, optimizer, verbose, epoch, m_norm=m_norm, weight=weight)
+            self.fit_epoch(
+                dataloader_train,
+                optimizer,
+                verbose,
+                epoch,
+                m_norm=m_norm,
+                weight=weight,
+            )
             if verbose and epoch % test_interval == 0 and epoch > 1:
                 data_test = self.test(dataloader_val)
                 logging.info(compute_deferral_metrics(data_test))
             if scheduler is not None:
                 scheduler.step()
                 if epoch % 10 == 0:
-                    print("{}".format(optimizer.param_groups[0]['lr']))
+                    print("{}".format(optimizer.param_groups[0]["lr"]))
         final_test = self.test(dataloader_test)
         return compute_deferral_metrics(final_test)
 
@@ -1136,9 +1227,10 @@ class MixtureOfExperts(BaseMethod):
             "hum_preds": hum_preds_all,
             "preds": predictions_all,
             "rej_score": rej_score,
-            "class_probs": class_probs_all
+            "class_probs": class_probs_all,
         }
         return data
+
 
 class OVASurrogate(BaseSurrogateMethod):
     """Method of OvA surrogate from Calibrated Learning to Defer with One-vs-All Classifiers https://proceedings.mlr.press/v162/verma22c/verma22c.pdf"""
@@ -1172,7 +1264,9 @@ class OVASurrogate(BaseSurrogateMethod):
             weights = torch.tensor(weight)
             w_vect = weights.expand((batch_size, outputs.shape[1] - 1))
             if len(data_y.shape) == 1:
-                w_single = torch.gather(w_vect, 1, data_y.unsqueeze(1)).float().to(self.device)
+                w_single = (
+                    torch.gather(w_vect, 1, data_y.unsqueeze(1)).float().to(self.device)
+                )
             else:
                 w_single = torch.gather(w_vect, 1, data_y).float().to(self.device)
             if len(l.shape) != len(w_single.shape):
@@ -1180,6 +1274,7 @@ class OVASurrogate(BaseSurrogateMethod):
             else:
                 l = l * w_single
         return torch.mean(l)
+
 
 class SelectivePrediction(BaseMethod):
     """Selective Prediction method, train classifier on all data, and defer based on thresholding classifier confidence (max class prob)"""
@@ -1190,7 +1285,9 @@ class SelectivePrediction(BaseMethod):
         self.plotting_interval = plotting_interval
         self.treshold_class = 0.5
 
-    def fit_epoch_class(self, dataloader, optimizer, verbose=True, epoch=1, m_norm=5, weight=None):
+    def fit_epoch_class(
+        self, dataloader, optimizer, verbose=True, epoch=1, m_norm=5, weight=None
+    ):
         batch_time = AverageMeter()
         losses = AverageMeter()
         top1 = AverageMeter()
@@ -1203,7 +1300,9 @@ class SelectivePrediction(BaseMethod):
             outputs = self.model_class(data_x)
             # cross entropy loss
             loss = F.cross_entropy(outputs, data_y, weight=weight)
-            torch.nn.utils.clip_grad_norm_(self.model_class.parameters(), max_norm=m_norm)
+            torch.nn.utils.clip_grad_norm_(
+                self.model_class.parameters(), max_norm=m_norm
+            )
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -1269,7 +1368,7 @@ class SelectivePrediction(BaseMethod):
         step_size=25,
         gamma=0.1,
         m_norm=5,
-        weight=None
+        weight=None,
     ):
         # fit classifier and expert same time
         optimizer_class = optimizer(self.model_class.parameters(), lr=lr)
@@ -1280,7 +1379,12 @@ class SelectivePrediction(BaseMethod):
         self.model_class.train()
         for epoch in tqdm(range(epochs)):
             self.fit_epoch_class(
-                dataloader_train, optimizer_class, verbose=verbose, epoch=epoch, m_norm=m_norm, weight=weight
+                dataloader_train,
+                optimizer_class,
+                verbose=verbose,
+                epoch=epoch,
+                m_norm=m_norm,
+                weight=weight,
             )
             if verbose and epoch % test_interval == 0:
                 logging.info(compute_classification_metrics(self.test(dataloader_val)))
@@ -1339,9 +1443,12 @@ class SelectivePrediction(BaseMethod):
         }
         return data
 
+
 class RealizableSurrogate(BaseSurrogateMethod):
-    def surrogate_loss_function(self, outputs, hum_preds, data_y, weight: torch.tensor or list = None):
-        """ Implementation of our RealizableSurrogate loss function
+    def surrogate_loss_function(
+        self, outputs, hum_preds, data_y, weight: torch.tensor or list = None
+    ):
+        """Implementation of our RealizableSurrogate loss function
         we added a weight parameter to deal with chestxray dataset, which is highly imbalanced
         """
         human_correct = (hum_preds == data_y).float()
@@ -1364,7 +1471,9 @@ class RealizableSurrogate(BaseSurrogateMethod):
             weights = torch.tensor(weight)
             w_vect = weights.expand((batch_size, outputs.shape[1] - 1))
             if len(data_y.shape) == 1:
-                w_single = torch.gather(w_vect, 1, data_y.unsqueeze(1)).float().to(self.device)
+                w_single = (
+                    torch.gather(w_vect, 1, data_y.unsqueeze(1)).float().to(self.device)
+                )
             else:
                 w_single = torch.gather(w_vect, 1, data_y).float().to(self.device)
             if len(loss.shape) != len(w_single.shape):
@@ -1389,8 +1498,8 @@ class RealizableSurrogate(BaseSurrogateMethod):
         gamma=0.1,
         alpha_grid=[0, 0.1, 0.3, 0.5, 0.9, 1],
         path_model_save="realizable_surrogate_",
-        m_norm = 5,
-        weight=None
+        m_norm=5,
+        weight=None,
     ):
         # np.linspace(0,1,11)
         best_alpha = 0
@@ -1403,60 +1512,67 @@ class RealizableSurrogate(BaseSurrogateMethod):
                 dataloader_train,
                 dataloader_val,
                 dataloader_test,
-                epochs = epochs,
-                optimizer = optimizer,
-                lr = lr,
-                verbose = verbose,
-                test_interval = test_interval,
-                scheduler = scheduler,
+                epochs=epochs,
+                optimizer=optimizer,
+                lr=lr,
+                verbose=verbose,
+                test_interval=test_interval,
+                scheduler=scheduler,
                 step_size=step_size,
                 gamma=gamma,
                 m_norm=m_norm,
-                weight=weight
+                weight=weight,
             )["system_acc"]
             accuracy = compute_deferral_metrics(self.test(dataloader_val))["system_acc"]
             print(accuracy)
             logging.info(f"alpha: {alpha}, accuracy: {accuracy}")
             torch.save(self.model.state_dict(), path_model_save + f"alpha_{alpha}.pt")
-            if (accuracy > best_acc) & (accuracy != np.nan) & (accuracy != np.inf) & (accuracy != -np.inf):
+            if (
+                (accuracy > best_acc)
+                & (accuracy != np.nan)
+                & (accuracy != np.inf)
+                & (accuracy != -np.inf)
+            ):
                 best_acc = accuracy
                 best_alpha = alpha
         self.alpha = best_alpha
         self.model.load_state_dict(model_dict)
         fit = self.fit(
-                dataloader_train,
-                dataloader_val,
-                dataloader_test,
-                epochs = epochs,
-                optimizer = optimizer,
-                lr = lr,
-                verbose = verbose,
-                test_interval = test_interval,
-                scheduler = scheduler,
-                step_size=step_size,
-                gamma=gamma,
-                m_norm=m_norm,
-                weight=weight
-            )
+            dataloader_train,
+            dataloader_val,
+            dataloader_test,
+            epochs=epochs,
+            optimizer=optimizer,
+            lr=lr,
+            verbose=verbose,
+            test_interval=test_interval,
+            scheduler=scheduler,
+            step_size=step_size,
+            gamma=gamma,
+            m_norm=m_norm,
+            weight=weight,
+        )
         test_metrics = compute_deferral_metrics(self.test(dataloader_test))
         return test_metrics
 
+
 class AsymmetricLCESurrogate(BaseSurrogateMethod):
-        def Asym_SM_trans(self, outputs):
-            class_num = outputs.size()[1]-1
-            classifier_input = outputs[:, 0:class_num]
-            classifier_input = classifier_input.to(self.device)
-            output1 = torch.softmax(classifier_input, dim=-1).to(self.device)
-            sm = torch.softmax(outputs, dim=-1).to(self.device)
-            rejector_output = sm[:, class_num].view(-1,1)
-            norm = -(torch.max(sm[:, 0:class_num],dim=-1)[0].view(-1,1)-1)
-            output2 = rejector_output/(norm+1e-7)
-            return torch.cat((output1, output2), dim=-1)
-        def surrogate_loss_function(self, outputs, hum_preds, data_y, weight=None):
-            """
-            Implmentation of L_{CE}^{\alpha}
-            """
-            """
+    def Asym_SM_trans(self, outputs):
+        class_num = outputs.size()[1] - 1
+        classifier_input = outputs[:, 0:class_num]
+        classifier_input = classifier_input.to(self.device)
+        output1 = torch.softmax(classifier_input, dim=-1).to(self.device)
+        sm = torch.softmax(outputs, dim=-1).to(self.device)
+        rejector_output = sm[:, class_num].view(-1, 1)
+        norm = -(torch.max(sm[:, 0:class_num], dim=-1)[0].view(-1, 1) - 1)
+        output2 = rejector_output / (norm + 1e-7)
+        return torch.cat((output1, output2), dim=-1)
+
+    def surrogate_loss_function(self, outputs, hum_preds, data_y, weight=None):
+        """
+        Implmentation of L_{CE}^{\alpha}
+        """
+        """
             output = output.cuda()
             label = label.cuda()
             expert_pred = expert.predict(labels=label, input=[])
@@ -1478,32 +1594,31 @@ class AsymmetricLCESurrogate(BaseSurrogateMethod):
             return torch.mean(loss1+loss2)
             """
 
-            outputs = F.softmax(outputs, dim=1)
-            human_correct = (hum_preds == data_y).float()
-            outputs_probit = self.Asym_SM_trans(outputs).to(self.device)
-            num_class = outputs_probit.size()[1] - 1
-            sm = outputs_probit[:, 0:num_class]
-            bsm = outputs_probit[:, num_class]
-            loss1 = torch.log(sm + eps_cst)
-            loss1 = -loss1.gather(-1, data_y.view(-1, 1))
-            loss2 = -torch.mul(
-                human_correct, torch.log(bsm + eps_cst)
-            ) - torch.mul(
-                (1 - human_correct), torch.log(1 - bsm + eps_cst)
-            )
-            loss = loss1+loss2
-            batch_size = outputs.size()[0]
-            # il peso va fuori dal logaritmo
-            if weight is not None:
-                weights = torch.tensor(weight)
-                w_vect = weights.expand((batch_size, outputs.shape[1] - 1))
-                if len(data_y.shape) == 1:
-                    w_single = torch.gather(w_vect, 1, data_y.unsqueeze(1)).float().to(self.device)
-                else:
-                    w_single = torch.gather(w_vect, 1, data_y).float().to(self.device)
-                if len(loss.shape) != len(w_single.shape):
-                    loss = w_single.reshape(-1) * loss
-                else:
-                    loss = loss * w_single
-            return torch.mean(loss)
-
+        outputs = F.softmax(outputs, dim=1)
+        human_correct = (hum_preds == data_y).float()
+        outputs_probit = self.Asym_SM_trans(outputs).to(self.device)
+        num_class = outputs_probit.size()[1] - 1
+        sm = outputs_probit[:, 0:num_class]
+        bsm = outputs_probit[:, num_class]
+        loss1 = torch.log(sm + eps_cst)
+        loss1 = -loss1.gather(-1, data_y.view(-1, 1))
+        loss2 = -torch.mul(human_correct, torch.log(bsm + eps_cst)) - torch.mul(
+            (1 - human_correct), torch.log(1 - bsm + eps_cst)
+        )
+        loss = loss1 + loss2
+        batch_size = outputs.size()[0]
+        # il peso va fuori dal logaritmo
+        if weight is not None:
+            weights = torch.tensor(weight)
+            w_vect = weights.expand((batch_size, outputs.shape[1] - 1))
+            if len(data_y.shape) == 1:
+                w_single = (
+                    torch.gather(w_vect, 1, data_y.unsqueeze(1)).float().to(self.device)
+                )
+            else:
+                w_single = torch.gather(w_vect, 1, data_y).float().to(self.device)
+            if len(loss.shape) != len(w_single.shape):
+                loss = w_single.reshape(-1) * loss
+            else:
+                loss = loss * w_single
+        return torch.mean(loss)

@@ -18,6 +18,7 @@ from torch.utils.data import Dataset
 import torch.nn.functional as F
 from src.metrics import *
 
+
 def set_seed(seed=None, seed_torch=True):
     """
     Set random seed for reproducibility.
@@ -44,38 +45,51 @@ def set_seed(seed=None, seed_torch=True):
 def download_images_NIH(data_dir="data/"):
     # URLs for the zip files
     links = [
-        'https://nihcc.box.com/shared/static/vfk49d74nhbxq3nqjg0900w5nvkorp5c.gz',
-        'https://nihcc.box.com/shared/static/i28rlmbvmfjbl8p2n3ril0pptcmcu9d1.gz',
-        'https://nihcc.box.com/shared/static/f1t00wrtdk94satdfb9olcolqx20z2jp.gz',
-        'https://nihcc.box.com/shared/static/0aowwzs5lhjrceb3qp67ahp0rd1l1etg.gz',
-        'https://nihcc.box.com/shared/static/v5e3goj22zr6h8tzualxfsqlqaygfbsn.gz',
-        'https://nihcc.box.com/shared/static/asi7ikud9jwnkrnkj99jnpfkjdes7l6l.gz',
-        'https://nihcc.box.com/shared/static/jn1b4mw4n6lnh74ovmcjb8y48h8xj07n.gz',
-        'https://nihcc.box.com/shared/static/tvpxmn7qyrgl0w8wfh9kqfjskv6nmm1j.gz',
-        'https://nihcc.box.com/shared/static/upyy3ml7qdumlgk2rfcvlb9k6gvqq2pj.gz',
-        'https://nihcc.box.com/shared/static/l6nilvfa9cg3s28tqv1qc1olm3gnz54p.gz',
-        'https://nihcc.box.com/shared/static/hhq8fkdgvcari67vfhs7ppg2w6ni4jze.gz',
-        'https://nihcc.box.com/shared/static/ioqwiy20ihqwyr8pf4c24eazhh281pbu.gz'
+        "https://nihcc.box.com/shared/static/vfk49d74nhbxq3nqjg0900w5nvkorp5c.gz",
+        "https://nihcc.box.com/shared/static/i28rlmbvmfjbl8p2n3ril0pptcmcu9d1.gz",
+        "https://nihcc.box.com/shared/static/f1t00wrtdk94satdfb9olcolqx20z2jp.gz",
+        "https://nihcc.box.com/shared/static/0aowwzs5lhjrceb3qp67ahp0rd1l1etg.gz",
+        "https://nihcc.box.com/shared/static/v5e3goj22zr6h8tzualxfsqlqaygfbsn.gz",
+        "https://nihcc.box.com/shared/static/asi7ikud9jwnkrnkj99jnpfkjdes7l6l.gz",
+        "https://nihcc.box.com/shared/static/jn1b4mw4n6lnh74ovmcjb8y48h8xj07n.gz",
+        "https://nihcc.box.com/shared/static/tvpxmn7qyrgl0w8wfh9kqfjskv6nmm1j.gz",
+        "https://nihcc.box.com/shared/static/upyy3ml7qdumlgk2rfcvlb9k6gvqq2pj.gz",
+        "https://nihcc.box.com/shared/static/l6nilvfa9cg3s28tqv1qc1olm3gnz54p.gz",
+        "https://nihcc.box.com/shared/static/hhq8fkdgvcari67vfhs7ppg2w6ni4jze.gz",
+        "https://nihcc.box.com/shared/static/ioqwiy20ihqwyr8pf4c24eazhh281pbu.gz",
     ]
     if os.path.exists("data/") is False:
-        os.mkdir("data/") # create the data directory if it does not exist
+        os.mkdir("data/")  # create the data directory if it does not exist
     if os.path.exists("data/{}".format(data_dir)) is False:
-        os.mkdir("data/{}".format(data_dir)) # create the data directory if it does not exist
+        os.mkdir(
+            "data/{}".format(data_dir)
+        )  # create the data directory if it does not exist
 
     for idx, link in enumerate(links):
-        fn = 'images_%02d.tar.gz' % (idx+1) # filename
-        print('downloading'+fn+'...') # print out the filename
-        urllib.request.urlretrieve(link, "data/{}/{}".format(data_dir, fn))  # download the zip file
+        fn = "images_%02d.tar.gz" % (idx + 1)  # filename
+        print("downloading" + fn + "...")  # print out the filename
+        urllib.request.urlretrieve(
+            link, "data/{}/{}".format(data_dir, fn)
+        )  # download the zip file
 
     print("Download complete. Please check the checksums")
 
 
-def train_deferral_single_model(Method, dataloader_train, dataloader_test, epochs, lr, verbose=True, test_interval=5,
-                                include_scheduler=False):
-    optimizer = torch.optim.SGD(Method.model.parameters(), lr,
-                                weight_decay=5e-4)
+def train_deferral_single_model(
+    Method,
+    dataloader_train,
+    dataloader_test,
+    epochs,
+    lr,
+    verbose=True,
+    test_interval=5,
+    include_scheduler=False,
+):
+    optimizer = torch.optim.SGD(Method.model.parameters(), lr, weight_decay=5e-4)
 
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, len(dataloader_train) * epochs)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, len(dataloader_train) * epochs
+    )
     for epoch in tqdm(range(epochs)):
         Method.fit_epoch(dataloader_train, optimizer, verbose, epoch)
         if verbose and epoch % test_interval == 0:
@@ -88,17 +102,28 @@ def train_deferral_single_model(Method, dataloader_train, dataloader_test, epoch
     return compute_deferral_metrics(final_test)
 
 
-def train_single_model(Method, model, fit, dataloader_train, dataloader_test, epochs, verbose=True, test_interval=5):
-    '''
+def train_single_model(
+    Method,
+    model,
+    fit,
+    dataloader_train,
+    dataloader_test,
+    epochs,
+    verbose=True,
+    test_interval=5,
+):
+    """
     Method: the method class
     model: model in method
     fit: fit method in Method class
-    '''
-    optimizer = torch.optim.SGD(model.parameters(), 0.1,
-                                momentum=0.9, nesterov=True,
-                                weight_decay=5e-4)
+    """
+    optimizer = torch.optim.SGD(
+        model.parameters(), 0.1, momentum=0.9, nesterov=True, weight_decay=5e-4
+    )
 
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, len(dataloader_train) * epochs)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, len(dataloader_train) * epochs
+    )
     for epoch in tqdm(range(epochs)):
         Method.fit(epoch, dataloader_train, optimizer, verbose, epoch)
         if epoch % test_interval == 0:
@@ -107,6 +132,7 @@ def train_single_model(Method, model, fit, dataloader_train, dataloader_test, ep
         scheduler.step()
     final_test = Method.test(dataloader_test)
     return compute_classification_metrics(final_test)
+
 
 def weighted_cross_entropy_loss(outputs, labels, weights, weight_class=None):
     """
@@ -117,8 +143,11 @@ def weighted_cross_entropy_loss(outputs, labels, weights, weight_class=None):
 
     return: weighted cross entropy loss as scalar
     """
-    outputs = weights * F.cross_entropy(outputs, labels, reduction="none", weight=weight_class)  # regular CE
-    return torch.sum(outputs) / (torch.sum(weights)+1e-8)
+    outputs = weights * F.cross_entropy(
+        outputs, labels, reduction="none", weight=weight_class
+    )  # regular CE
+    return torch.sum(outputs) / (torch.sum(weights) + 1e-8)
+
 
 def compute_deferral_metrics(data_test):
     """_summary_
@@ -220,9 +249,12 @@ def compute_coverage_v_acc_curve(data_test):
         all_metrics.append(metrics)
     return all_metrics
 
+
 def extract_data(data_dir="data/", max_links=12, dataset="nih"):
     if dataset == "nih":
-        files_to_extract = [f"nih/images_{i:02d}.tar.gz" for i in range(1, max_links + 1)]
+        files_to_extract = [
+            f"nih/images_{i:02d}.tar.gz" for i in range(1, max_links + 1)
+        ]
         # extract files
         for f in files_to_extract:
             fn = "{}/{}".format(data_dir, f)
@@ -232,6 +264,7 @@ def extract_data(data_dir="data/", max_links=12, dataset="nih"):
             file.extractall(data_dir + "/images_nih")
             file.close()
             logging.info("Done")
+
 
 def get_rdd_robust_results(correct, conf_scores, cutoff, rdrobust_params={}):
     """
@@ -270,43 +303,44 @@ def get_rdd_robust_results(correct, conf_scores, cutoff, rdrobust_params={}):
     for param in rdd_params.keys():
         rdd_params[param] = getattr(res, param)
     rdd_params_clean = {}
-    rdd_params_clean['N'] = rdd_params['N']
-    rdd_params_clean['N_h_l'] = rdd_params['N_h'][0]
-    rdd_params_clean['N_h_r'] = rdd_params['N_h'][1]
-    rdd_params_clean['c'] = rdd_params['c']
-    rdd_params_clean['p'] = rdd_params['p']
-    rdd_params_clean['q'] = rdd_params['q']
-    rdd_params_clean['bws_l_h'] = rdd_params['bws']['left'].iloc[0]
-    rdd_params_clean['bws_l_b'] = rdd_params['bws']['left'].iloc[1]
-    rdd_params_clean['bws_r_h'] = rdd_params['bws']['right'].iloc[0]
-    rdd_params_clean['bws_r_b'] = rdd_params['bws']['right'].iloc[1]
-    rdd_params_clean['tau_cl_l'] = rdd_params['tau_cl'][0]
-    rdd_params_clean['tau_cl_r'] = rdd_params['tau_cl'][1]
-    rdd_params_clean['tau_bc_l'] = rdd_params['tau_bc'][0]
-    rdd_params_clean['tau_bc_r'] = rdd_params['tau_bc'][1]
-    rdd_params_clean['coef_conv'] = rdd_params['coef'].values[0][0]
-    rdd_params_clean['coef_bias'] = rdd_params['coef'].values[1][0]
-    rdd_params_clean['coef_rob'] = rdd_params['coef'].values[2][0]
-    rdd_params_clean['se_conv'] = rdd_params['se'].values[0][0]
-    rdd_params_clean['se_bias'] = rdd_params['se'].values[1][0]
-    rdd_params_clean['se_rob'] = rdd_params['se'].values[2][0]
-    rdd_params_clean['bias_l'] = rdd_params['bias'][0]
-    rdd_params_clean['bias_r'] = rdd_params['bias'][1]
+    rdd_params_clean["N"] = rdd_params["N"]
+    rdd_params_clean["N_h_l"] = rdd_params["N_h"][0]
+    rdd_params_clean["N_h_r"] = rdd_params["N_h"][1]
+    rdd_params_clean["c"] = rdd_params["c"]
+    rdd_params_clean["p"] = rdd_params["p"]
+    rdd_params_clean["q"] = rdd_params["q"]
+    rdd_params_clean["bws_l_h"] = rdd_params["bws"]["left"].iloc[0]
+    rdd_params_clean["bws_l_b"] = rdd_params["bws"]["left"].iloc[1]
+    rdd_params_clean["bws_r_h"] = rdd_params["bws"]["right"].iloc[0]
+    rdd_params_clean["bws_r_b"] = rdd_params["bws"]["right"].iloc[1]
+    rdd_params_clean["tau_cl_l"] = rdd_params["tau_cl"][0]
+    rdd_params_clean["tau_cl_r"] = rdd_params["tau_cl"][1]
+    rdd_params_clean["tau_bc_l"] = rdd_params["tau_bc"][0]
+    rdd_params_clean["tau_bc_r"] = rdd_params["tau_bc"][1]
+    rdd_params_clean["coef_conv"] = rdd_params["coef"].values[0][0]
+    rdd_params_clean["coef_bias"] = rdd_params["coef"].values[1][0]
+    rdd_params_clean["coef_rob"] = rdd_params["coef"].values[2][0]
+    rdd_params_clean["se_conv"] = rdd_params["se"].values[0][0]
+    rdd_params_clean["se_bias"] = rdd_params["se"].values[1][0]
+    rdd_params_clean["se_rob"] = rdd_params["se"].values[2][0]
+    rdd_params_clean["bias_l"] = rdd_params["bias"][0]
+    rdd_params_clean["bias_r"] = rdd_params["bias"][1]
     # rdd_params_clean['beta_p_l'] = rdd_params['beta_p_l']
     # rdd_params_clean['beta_p_r'] = rdd_params['beta_p_r']
-    rdd_params_clean['pv_conv'] = rdd_params['pv'].values[0][0]
-    rdd_params_clean['pv_bias'] = rdd_params['pv'].values[1][0]
-    rdd_params_clean['pv_rob'] = rdd_params['pv'].values[2][0]
-    rdd_params_clean['ci_conv_l'] = rdd_params['ci']['CI Lower'].values[0]
-    rdd_params_clean['ci_conv_u'] = rdd_params['ci']['CI Upper'].values[0]
-    rdd_params_clean['ci_bias_l'] = rdd_params['ci']['CI Lower'].values[1]
-    rdd_params_clean['ci_bias_u'] = rdd_params['ci']['CI Upper'].values[1]
-    rdd_params_clean['ci_rob_l'] = rdd_params['ci']['CI Lower'].values[2]
-    rdd_params_clean['ci_rob_u'] = rdd_params['ci']['CI Upper'].values[2]
+    rdd_params_clean["pv_conv"] = rdd_params["pv"].values[0][0]
+    rdd_params_clean["pv_bias"] = rdd_params["pv"].values[1][0]
+    rdd_params_clean["pv_rob"] = rdd_params["pv"].values[2][0]
+    rdd_params_clean["ci_conv_l"] = rdd_params["ci"]["CI Lower"].values[0]
+    rdd_params_clean["ci_conv_u"] = rdd_params["ci"]["CI Upper"].values[0]
+    rdd_params_clean["ci_bias_l"] = rdd_params["ci"]["CI Lower"].values[1]
+    rdd_params_clean["ci_bias_u"] = rdd_params["ci"]["CI Upper"].values[1]
+    rdd_params_clean["ci_rob_l"] = rdd_params["ci"]["CI Lower"].values[2]
+    rdd_params_clean["ci_rob_u"] = rdd_params["ci"]["CI Upper"].values[2]
     df_rdd = pd.DataFrame()
     for param in rdd_params_clean.keys():
         df_rdd[param] = [rdd_params_clean[param]]
     return df_rdd, rdd_params_clean
+
 
 def get_rdd_robust_results_reduced(correct, conf_scores, cutoff, rdrobust_params={}):
     """
@@ -345,21 +379,22 @@ def get_rdd_robust_results_reduced(correct, conf_scores, cutoff, rdrobust_params
     for param in rdd_params.keys():
         rdd_params[param] = getattr(res, param)
     rdd_params_clean = {}
-    rdd_params_clean['N'] = rdd_params['N']
-    rdd_params_clean['N_h_l'] = rdd_params['N_h'][0]
-    rdd_params_clean['N_h_r'] = rdd_params['N_h'][1]
-    rdd_params_clean['c'] = rdd_params['c']
-    rdd_params_clean['p'] = rdd_params['p']
-    rdd_params_clean['q'] = rdd_params['q']
-    rdd_params_clean['coef_rob'] = rdd_params['coef'].values[2][0]
-    rdd_params_clean['se_rob'] = rdd_params['se'].values[2][0]
-    rdd_params_clean['pv_rob'] = rdd_params['pv'].values[2][0]
-    rdd_params_clean['ci_rob_l'] = rdd_params['ci']['CI Lower'].values[2]
-    rdd_params_clean['ci_rob_u'] = rdd_params['ci']['CI Upper'].values[2]
+    rdd_params_clean["N"] = rdd_params["N"]
+    rdd_params_clean["N_h_l"] = rdd_params["N_h"][0]
+    rdd_params_clean["N_h_r"] = rdd_params["N_h"][1]
+    rdd_params_clean["c"] = rdd_params["c"]
+    rdd_params_clean["p"] = rdd_params["p"]
+    rdd_params_clean["q"] = rdd_params["q"]
+    rdd_params_clean["coef_rob"] = rdd_params["coef"].values[2][0]
+    rdd_params_clean["se_rob"] = rdd_params["se"].values[2][0]
+    rdd_params_clean["pv_rob"] = rdd_params["pv"].values[2][0]
+    rdd_params_clean["ci_rob_l"] = rdd_params["ci"]["CI Lower"].values[2]
+    rdd_params_clean["ci_rob_u"] = rdd_params["ci"]["CI Upper"].values[2]
     df_rdd = pd.DataFrame()
     for param in rdd_params_clean.keys():
         df_rdd[param] = [rdd_params_clean[param]]
     return df_rdd, rdd_params_clean
+
 
 def estimate_best_threshold(data_val):
     """
@@ -383,18 +418,19 @@ def estimate_best_threshold(data_val):
         copy_data["defers"] = defers
         # compute metrics
         metrics = compute_deferral_metrics(copy_data)
-        if metrics['system_acc'] > best_accuracy:
-            best_accuracy = metrics['system_acc']
+        if metrics["system_acc"] > best_accuracy:
+            best_accuracy = metrics["system_acc"]
             best_treshold = q
     return best_treshold
 
+
 class AverageMeter(object):
     """Computes and stores the average and current value"""
+
     def __init__(self):
         self.reset()
 
     def reset(self):
-
         self.val = 0
         self.avg = 0
         self.sum = 0
