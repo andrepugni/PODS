@@ -48,4 +48,5 @@ The results will be saved in the `results` folder.
 
 If you do not want to train the models from scratch, you can download them from [here](https://www.dropbox.com/scl/fo/6rxx0sy4dq1c86aqgw5sr/AIdZeeWh6yeSohg4oLjiJKY?rlkey=1in2itm23tx1nh4jaaht4hxwm&dl=0).
 
-All the plots and the tables can be retrieved from running the Jupyter notebooks in the `notebooks` folder.
+All the plots for the main paper and the tables can be retrieved from running the Jupyter notebooks in the `notebooks` folder.
+To obtain the plots for density estimation, run the `density_estimation.R` file.
