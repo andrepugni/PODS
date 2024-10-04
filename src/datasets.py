@@ -1613,7 +1613,6 @@ class SyntheticData(BaseDataset):
         )
 
 
-
 class OracleSyntheticData(BaseDataset):
     """Synthetic dataset introduced in our work"""
 
@@ -1807,9 +1806,6 @@ class OracleSyntheticData(BaseDataset):
         )
 
 
-
-
-
 # https://osf.io/2ntrf/
 # https://www.pnas.org/doi/10.1073/pnas.2111547119
 
@@ -1985,5 +1981,3 @@ class GalaxyZoo(BaseDataset):
             num_workers=8,
             pin_memory=True,
         )
-
-
