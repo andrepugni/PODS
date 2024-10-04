@@ -20,20 +20,20 @@ def main():
         # for each method compute effects of interest
         for method in ["RS", "CC", "DT", "LCE", "SP", "OVA", "ASM"]:
             if data == "synth":
-                filename_cal = "../resultsRAW/{}/GCresultsRAW_cal_{}_{}_42_0.1_0.3_0.2_ep{}.csv".format(
+                filename_cal = "resultsRAW/{}/GCresultsRAW_cal_{}_{}_42_0.1_0.4_0.1_ep{}.csv".format(
                     data, data, method, epochs_dict[data]
                 )
-                filename_test = "../resultsRAW/{}/GCresultsRAW_test_{}_{}_42_0.1_0.3_0.2_ep{}.csv".format(
+                filename_test = "resultsRAW/{}/GCresultsRAW_test_{}_{}_42_0.1_0.4_0.1_ep{}.csv".format(
                     data, data, method, epochs_dict[data]
                 )
             else:
                 filename_cal = (
-                    "../resultsRAW/{}/GCresultsRAW_cal_{}_{}_42_ep{}.csv".format(
+                    "resultsRAW/{}/GCresultsRAW_cal_{}_{}_42_ep{}.csv".format(
                         data, data, method, epochs_dict[data]
                     )
                 )
                 filename_test = (
-                    "../resultsRAW/{}/GCresultsRAW_test_{}_{}_42_ep{}.csv".format(
+                    "resultsRAW/{}/GCresultsRAW_test_{}_{}_42_ep{}.csv".format(
                         data, data, method, epochs_dict[data]
                     )
                 )
@@ -70,12 +70,12 @@ def main():
                 ATT = np.mean(human_correct[defer == 1]) - np.mean(
                     ML_correct[defer == 1]
                 )
-                check = human_correct[defer == 1] - ML_correct[defer == 1]
+                check = human_correct - ML_correct
                 tmp = pd.DataFrame()
                 tmp["check"] = check
-                tmp["defer"] = 1
+                tmp["defer"] = np.where(defer == 1, 1, 0)
                 # run a regression to obtain the significance of ATT (the intercept coefficient is also the ATT)
-                dd = ols("check ~ 1", data=tmp).fit(cov_type="HC3")
+                dd = ols("check ~ 1", data=tmp[tmp["defer"] == 1]).fit(cov_type="HC1")
                 acc_hum = np.mean(human_correct[defer == 1])
                 acc_ML = np.mean(ML_correct[defer == 0])
                 acc_system = np.mean(correct)
@@ -120,6 +120,7 @@ def main():
             tmp_res["acc_hum"] = [0]
             tmp_res["acc_ML"] = np.mean(ML_correct)
             tmp_res["acc_system"] = np.mean(ML_correct)
+            tmp_res["obs"] = tmp.shape[0]
             res = pd.concat([res, tmp_res])
             tmp_res = pd.DataFrame()
             tmp_res["data"] = [
@@ -131,7 +132,7 @@ def main():
             check = human_correct - ML_correct
             tmp["check"] = check
             tmp["defer"] = 1
-            dd = ols("check ~ 1", data=tmp).fit(cov_type="HC3")
+            dd = ols("check ~ 1", data=tmp).fit(cov_type="HC1")
             tmp_res["ATT"] = [dd.params[0]]
             tmp_res["ci_l_ATT"] = [dd.conf_int().iloc[:, 0].values[0]]
             tmp_res["ci_u_ATT"] = [dd.conf_int().iloc[:, 1].values[0]]
@@ -140,7 +141,7 @@ def main():
             tmp_res["acc_ML"] = 0
             tmp_res["acc_system"] = np.mean(human_correct)
             res = pd.concat([res, tmp_res])
-    res.to_csv("../results/all_results.csv", index=False)  # save results
+    res.to_csv("results/all_results.csv", index=False)  # save results
 
 
 if __name__ == "__main__":

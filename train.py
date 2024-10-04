@@ -127,8 +127,8 @@ def test(
         w_classes = None
         m_n = 5
         dataset = SyntheticData(
-            train_samples=20000,
-            test_samples=5000,
+            train_samples=40000,
+            test_samples=10000,
             data_distribution=data_distribution,
             d=d,
             mean_scale=1,
@@ -917,8 +917,8 @@ def main(all_models=False, all_data=False, **kwargs):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_distribution", type=str, default="mix_of_gaussians")
-    parser.add_argument("--num_of_guassians", type=int, default=15)
-    parser.add_argument("--d", type=int, default=30)
+    parser.add_argument("--num_of_guassians", type=int, default=20)
+    parser.add_argument("--d", type=int, default=10)
     parser.add_argument("--milp_time_limit", type=int, default=60 * 40)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--data", type=str, default="synth")

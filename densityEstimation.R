@@ -9,7 +9,7 @@ df.tst <- read.csv(paste0(path, dataset, "/GCresultsRAW_test_galaxyzoo_CC_42_ep5
 cc_col = rgb(0.00392156862745098, 0.45098039215686275, 0.6980392156862745)
 rs_col = rgb(0.8705882352941177, 0.5607843137254902, 0.0196078431372549)
 asm_col = rgb(0.00784313725490196, 0.6196078431372549, 0.45098039215686275)
-image_fold = "../figs/"
+image_fold = "figs/"
 
 
 for (x in c(.1,.2,.3,.4,.5,.6,.7,.8,.9)) {
@@ -135,8 +135,8 @@ for (x in c(.1,.2,.3,.4,.5,.6,.7,.8,.9)) {
 }
 
 dataset <- "synth"
-df.cal <- read.csv(paste0(path, dataset, "/GCresultsRAW_cal_synth_ASM_42_0.1_0.3_0.2_ep50.csv"))
-df.tst <- read.csv(paste0(path, dataset, "/GCresultsRAW_test_synth_ASM_42_0.1_0.3_0.2_ep50.csv"))
+df.cal <- read.csv(paste0(path, dataset, "/GCresultsRAW_cal_synth_ASM_42_0.1_0.4_0.1_ep50.csv"))
+df.tst <- read.csv(paste0(path, dataset, "/GCresultsRAW_test_synth_ASM_42_0.1_0.4_0.1_ep50.csv"))
 
 for (x in c(.1,.2,.3,.4,.5,.6,.7,.8,.9)) {
   cutoff <- quantile(df.cal$rej_score, probs = x)
