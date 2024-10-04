@@ -31,9 +31,11 @@ To obtain the final estimates included in our paper, you can run the following c
 
 ```
 python test.py
+python test_conditional.py
 ```
 
-This will produce the final estimates for all the datasets and all the deferring systems.
+The first command will produce the final estimates for all the datasets and all the deferring systems for Q1 and Q3.
+The second command will produce the final estimates for all the datasets and all the deferring systems for Q2.
 The results will be saved in the `results` folder.
 
 
